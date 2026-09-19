@@ -4,6 +4,7 @@
  */
 const { GoogleGenAI } = require("@google/genai");
 const natural = require("natural");
+const identity = require("../config/identityConfig");
 const tokenizer = new natural.WordTokenizer();
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -21,24 +22,24 @@ const REDIRECT_MAP = {
 };
 
 const SOCIAL_MAP = {
-  [process.env.SOCIAL_TIKTOK || ""]: ["tiktok", "tt"],
-  [process.env.SOCIAL_INSTAGRAM || ""]: ["instagram", "ig", "insta"],
-  [process.env.SOCIAL_YOUTUBE || ""]: ["youtube", "yt"],
-  [process.env.SOCIAL_LINKEDIN || ""]: ["linkedin", "in"],
-  [process.env.SOCIAL_GITHUB || ""]: ["github", "gh"],
+  [identity.social.tiktok]: ["tiktok", "tt"],
+  [identity.social.instagram]: ["instagram", "ig", "insta"],
+  [identity.social.youtube]: ["youtube", "yt"],
+  [identity.social.linkedin]: ["linkedin", "in"],
+  [identity.social.github]: ["github", "gh"],
 };
 
 const MAX_HISTORY = 10;
 const MAX_INPUT_LENGTH = 1200; // Limit prompt length to prevent token abuse
 
-// Configurable identity used to build the assistant system prompt.
-const AI_BRAND = process.env.AI_BRAND_NAME || "the owner";
-const AI_OWNER = process.env.AI_OWNER_NAME || "the owner";
-const AI_ALIAS = process.env.AI_OWNER_ALIAS || AI_BRAND;
-const AI_ROLE = process.env.AI_OWNER_ROLE || "Software Engineer";
-const AI_COMPANY = process.env.AI_COMPANY_NAME || "";
-const AI_COMPANY_URL = process.env.AI_COMPANY_URL || "";
-const AI_BIO = process.env.AI_OWNER_BIO || "";
+// Identity used to build the assistant system prompt (from config, not env).
+const AI_BRAND = identity.brandName;
+const AI_OWNER = identity.owner.name;
+const AI_ALIAS = identity.owner.alias || AI_BRAND;
+const AI_ROLE = identity.owner.role;
+const AI_COMPANY = identity.company.name;
+const AI_COMPANY_URL = identity.company.url;
+const AI_BIO = identity.owner.bio;
 
 const SYSTEM_HISTORY = [
   {

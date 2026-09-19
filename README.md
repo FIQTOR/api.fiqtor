@@ -6,7 +6,7 @@ Node.js + Express API powering the portfolio frontend. Handles the AI assistant,
 
 ## ✨ Features
 
-- 🤖 **AI Chat** — Google Gemini–powered assistant (`@google/genai`), configurable identity via env.
+- 🤖 **AI Chat** — Google Gemini–powered assistant (`@google/genai`), identity from static config (`config/identityConfig.js`).
 - 📬 **Contact Form** — Sends via WhatsApp Cloud API, with automatic Email (SMTP) fallback.
 - 📊 **Public Stats** — GitHub contributions + WakaTime coding stats (with caching/retry).
 - 💰 **Static Crypto & Social** — BTC/ETH/SOL prices and TikTok/Instagram follower counts are served from **static, hand-maintained** config files (no third-party API, no key to leak).
@@ -56,8 +56,8 @@ All sensitive data is read from `backend/.env` (gitignored). See [`backend/.env.
 | `FRONTEND_HOST` | ✅ | Allowed CORS origin(s) |
 | `GEMINI_API_KEY` | ✅ | Google Gemini key |
 | `GROQ_API_KEY` | ⬜ | Optional Groq key |
-| `AI_BRAND_NAME`, `AI_OWNER_NAME`, `AI_OWNER_ALIAS`, `AI_OWNER_ROLE`, `AI_OWNER_BIO`, `AI_COMPANY_NAME`, `AI_COMPANY_URL` | ✅/⬜ | AI assistant identity/context |
-| `SOCIAL_TIKTOK`, `SOCIAL_INSTAGRAM`, `SOCIAL_YOUTUBE`, `SOCIAL_LINKEDIN`, `SOCIAL_GITHUB`, `SOCIAL_TIKTOK_USERNAME` | ⬜ | Social URLs for AI routing + stats |
+| `AI_BRAND_NAME`, `AI_OWNER_NAME`, `AI_OWNER_ALIAS`, `AI_OWNER_ROLE`, `AI_OWNER_BIO`, `AI_COMPANY_NAME`, `AI_COMPANY_URL` | — | **Moved to code** → `config/identityConfig.js` |
+| `SOCIAL_TIKTOK`, `SOCIAL_INSTAGRAM`, `SOCIAL_YOUTUBE`, `SOCIAL_LINKEDIN`, `SOCIAL_GITHUB` | — | **Moved to code** → `config/identityConfig.js` |
 | `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USERNAME`, `EMAIL_PASSWORD` | ✅ | SMTP (Gmail App Password recommended) |
 | `EMAIL_RECIPIENT` | ✅ | Receives contact-form notifications |
 | `EMAIL_BUSINESS` | ⬜ | Optional public business email |
@@ -67,6 +67,8 @@ All sensitive data is read from `backend/.env` (gitignored). See [`backend/.env.
 | `WAKATIME_TIMEOUT_MS`, `WAKATIME_MAX_RETRIES`, `WAKATIME_CACHE_TTL_MS` | ⬜ | WakaTime tuning (defaults 8000 / 2 / 300000) |
 | `GOOGLE_CLIENT_EMAIL`, `GOOGLE_PRIVATE_KEY`, `GOOGLE_SHEET_ID`, `SHEET_SECRET_KEY` | ⬜ | Google Sheets (optional) |
 | `APP_KEY_HASH` | ✅ | bcrypt hash for app-key validation |
+
+> 💡 **AI identity & social URLs are code-based.** They live in [`config/identityConfig.js`](config/identityConfig.js) (brand, owner, company, social links) — edit and restart. They are not secrets, so keeping them out of `.env` avoids drift.
 
 > 💡 **Crypto prices & social stats need no env vars.** They are **static** and live in code — edit [`config/cryptoConfig.js`](config/cryptoConfig.js) and [`config/socialConfig.js`](config/socialConfig.js), then restart the server. This means a visitor can never discover an API key, because there isn't one.
 
@@ -100,7 +102,7 @@ Base URL: `http://localhost:4000`
 
 ```
 backend/
-├── config/           # CORS + static crypto/social data
+├── config/           # CORS + static identity/crypto/social data
 ├── controllers/      # AIController (+ optional Product/Application controllers)
 ├── middleware/       # rate limiter, logger, error handler
 ├── services/         # ContactHandler, Github, Wakatime, Crypto, UpdateStats
