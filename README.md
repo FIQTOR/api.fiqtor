@@ -9,6 +9,7 @@ Node.js + Express API powering the portfolio frontend. Handles the AI assistant,
 - 🤖 **AI Chat** — Google Gemini–powered assistant (`@google/genai`), configurable identity via env.
 - 📬 **Contact Form** — Sends via WhatsApp Cloud API, with automatic Email (SMTP) fallback.
 - 📊 **Public Stats** — GitHub contributions + WakaTime coding stats (with caching/retry).
+- 💰 **Static Crypto & Social** — BTC/ETH/SOL prices and TikTok/Instagram follower counts are served from **static, hand-maintained** config files (no third-party API, no key to leak).
 - 🛡️ **Security Hardening** — Helmet, HPP, CORS whitelist, and per-route rate limiting.
 - 🧩 **Maybe unused** — Product & application-key CRUD controllers (optional; require Google Sheets).
 
@@ -64,9 +65,10 @@ All sensitive data is read from `backend/.env` (gitignored). See [`backend/.env.
 | `GITHUB_USERNAME`, `GITHUB_TOKEN` | ⬜ | GitHub contribution stats |
 | `WAKATIME_APP_SECRET` | ⬜ | WakaTime stats |
 | `WAKATIME_TIMEOUT_MS`, `WAKATIME_MAX_RETRIES`, `WAKATIME_CACHE_TTL_MS` | ⬜ | WakaTime tuning (defaults 8000 / 2 / 300000) |
-| `BEHOLD_API_URL` | ⬜ | Instagram feed JSON endpoint |
 | `GOOGLE_CLIENT_EMAIL`, `GOOGLE_PRIVATE_KEY`, `GOOGLE_SHEET_ID`, `SHEET_SECRET_KEY` | ⬜ | Google Sheets (optional) |
 | `APP_KEY_HASH` | ✅ | bcrypt hash for app-key validation |
+
+> 💡 **Crypto prices & social stats need no env vars.** They are **static** and live in code — edit [`config/cryptoConfig.js`](config/cryptoConfig.js) and [`config/socialConfig.js`](config/socialConfig.js), then restart the server. This means a visitor can never discover an API key, because there isn't one.
 
 > ⚠️ Keep the service-account JSON key and all secrets **out of the repo**. Only `.env.example` (with placeholders) is committed.
 
@@ -80,7 +82,9 @@ Base URL: `http://localhost:4000`
 | `POST` | `/api/v1/contact/send` | Contact form (WhatsApp → Email) |
 | `GET`  | `/api/v1/github/contributions` | GitHub contribution stats |
 | `GET`  | `/api/v1/wakatime` | WakaTime coding stats (cached) |
-| `GET`  | `/v1/public/stats` | Public social stats |
+| `GET`  | `/api/v1/crypto` | Static BTC/ETH/SOL prices |
+| `GET`  | `/api/v1/social/stats` | Static TikTok/Instagram stats |
+| `GET`  | `/v1/public/stats` | Public social stats (same static data) |
 | `GET`  | `/api/v1/products` | List products *(optional)* |
 | `GET`  | `/api/v1/product/:row` | Get a product *(optional)* |
 | `POST` | `/api/v1/product` | Create a product *(optional)* |
@@ -96,10 +100,10 @@ Base URL: `http://localhost:4000`
 
 ```
 backend/
-├── config/           # CORS configuration
+├── config/           # CORS + static crypto/social data
 ├── controllers/      # AIController (+ optional Product/Application controllers)
 ├── middleware/       # rate limiter, logger, error handler
-├── services/         # ContactHandler, Github, Wakatime, UpdateStats
+├── services/         # ContactHandler, Github, Wakatime, Crypto, UpdateStats
 ├── public/           # public routes (no auth)
 ├── index.js          # 🚀 server entry point
 ├── routes.js         # API route definitions
@@ -128,6 +132,16 @@ console.log(stats.data.text);                  // "1,555 hrs 19 mins"
 console.log(stats.data.range.start_text);      // "Tue Oct 24th 2023"
 ```
 
+```javascript
+// Static crypto prices (no API key involved)
+const { data } = await (await fetch('/api/v1/crypto')).json();
+console.log(data.btc.rate, data.btc.delta.month);
+
+// Static social stats
+const social = await (await fetch('/api/v1/social/stats')).json();
+console.log(social.data.tiktok.followers);
+```
+
 ## 🚢 Deployment
 
 Vercel-ready (`vercel.json`). Import the `backend/` folder, add all env vars in **Settings → Environment Variables**, set `FRONTEND_HOST` to your production frontend URL, and deploy.
@@ -138,6 +152,7 @@ Vercel-ready (`vercel.json`). Import the `backend/` folder, add all env vars in 
 - Rotate any secret that was ever committed; purge git history (BFG / git-filter-repo).
 - Keep Helmet, HPP, rate limiting, and the CORS whitelist enabled in production.
 - All secrets must come from environment variables — **no hardcoded credentials in source**.
+- **No third-party crypto/social API keys exist.** Prices and follower counts are static code data, so there is nothing for a visitor to discover. If you ever re-introduce a live provider, keep its key on the backend and proxy the request — never expose it to the browser.
 
 ## 📄 License
 

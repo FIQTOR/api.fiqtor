@@ -5,6 +5,8 @@ const { processPrompt } = require('./controllers/AIController');
 const { messagingService } = require('./services/ContactHandler');
 const { fetchGithubContributions } = require('./services/Github');
 const { GetWakatime } = require('./services/Wakatime');
+const { getCryptoPrices } = require('./services/Crypto');
+const { getSocialStats } = require('./services/UpdateStats');
 const publicRoutes = require('./public');
 const { apiLimiter, aiLimiter, contactLimiter } = require('./middleware/rateLimiter');
 
@@ -62,6 +64,12 @@ function configureRoutes(app) {
             next(error);
         }
     });
+
+    // Static cryptocurrency prices (no third-party API — data lives in code)
+    app.get("/api/v1/crypto", apiLimiter, getCryptoPrices);
+
+    // Static social stats (no scraping / third-party API)
+    app.get("/api/v1/social/stats", apiLimiter, getSocialStats);
 }
 
 module.exports = { configureRoutes };
