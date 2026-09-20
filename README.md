@@ -6,7 +6,7 @@ Node.js + Express API powering the portfolio frontend. Handles the AI assistant,
 
 ## ✨ Features
 
-- 🤖 **AI Chat** — Google Gemini–powered assistant (`@google/genai`), identity from static config (`src/config/identity.js`).
+- 🤖 **AI Chat** — Google Gemini–powered assistant (`@google/genai`), identity from static config (`src/config/identity.js`). Streams replies (SSE) and accepts **multimodal input** — the frontend may attach an image, video or document as Gemini `inlineData`.
 - 📬 **Contact Form** — Sends via WhatsApp Cloud API, with automatic Email (SMTP) fallback.
 - 📊 **Public Stats** — GitHub contributions + WakaTime coding stats (with caching/retry).
 - 💰 **Static Crypto & Social** — BTC/ETH/SOL prices and TikTok/Instagram follower counts are served from **static, hand-maintained** config files (no third-party API, no key to leak).
@@ -104,14 +104,18 @@ backend/
 ## 🧪 Usage Examples
 
 ```javascript
-// AI chat
+// AI chat (streaming SSE). Optional `file` enables multimodal prompts:
+//   { data: <base64>, mimeType: "image/png" | "video/mp4" | "audio/webm" | "application/pdf" }
 const res = await fetch('/api/v1/ai/generate', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ input: 'Tell me about the projects' }),
+  body: JSON.stringify({
+    input: 'Tell me about the projects',
+    history: [{ role: 'user', parts: [{ text: 'Hi' }] }],
+    // file: { data: base64String, mimeType: 'image/png' },
+  }),
 });
-const data = await res.json();
-console.log(data.text);
+// Response is `text/event-stream`: lines look like `data: {"text":"..."}` then `data: [DONE]`.
 ```
 
 ```javascript
