@@ -78,7 +78,7 @@ async function fetchWakatimeStats(apiKey) {
   throw lastError;
 }
 
-exports.GetWakatime = async (req, res) => {
+const getWakatime = async (req, res) => {
   const apiKey = process.env.WAKATIME_APP_SECRET;
 
   // Fail fast if not configured.
@@ -137,3 +137,5 @@ exports.GetWakatime = async (req, res) => {
     });
   }
 };
+
+module.exports = { getWakatime };

@@ -8,13 +8,13 @@ require('dotenv').config();
 const cors = require('cors');
 const helmet = require('helmet');
 const hpp = require('hpp');
-const corsOptions = require('./config/corsConfig');
-const { apiLimiter } = require('./middleware/rateLimiter');
-const logger = require('./middleware/logger');
-const errorHandler = require('./middleware/errorHandler');
+const corsOptions = require('./src/config/cors');
+const { apiLimiter } = require('./src/middleware/rate-limiter');
+const logger = require('./src/middleware/logger');
+const errorHandler = require('./src/middleware/error-handler');
 const cookieParser = require('cookie-parser');
 const express = require('express');
-const { configureRoutes } = require('./routes');
+const { configureRoutes } = require('./src/routes');
 
 const PORT = process.env.APP_PORT || 4000;
 const ENV = process.env.NODE_ENV || 'development';

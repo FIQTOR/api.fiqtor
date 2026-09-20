@@ -2,14 +2,14 @@
  * Social stats service — serves STATIC follower data.
  *
  * No third-party API / scraping is used. Data lives in
- * `config/socialConfig.js`; edit that file and restart to update.
+ * `config/social.js`; edit that file and restart to update.
  */
-const socialConfig = require('../config/socialConfig');
+const socialConfig = require('../config/social');
 
 let lastUpdated = new Date().toISOString();
 
 /**
- * GET /v1/public/stats
+ * GET /api/v1/social/stats
  * Returns static TikTok / Instagram follower counts.
  */
 const getSocialStats = (req, res) => {

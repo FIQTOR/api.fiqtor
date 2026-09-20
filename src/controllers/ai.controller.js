@@ -4,7 +4,7 @@
  */
 const { GoogleGenAI } = require("@google/genai");
 const natural = require("natural");
-const identity = require("../config/identityConfig");
+const identity = require("../config/identity");
 const tokenizer = new natural.WordTokenizer();
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -77,7 +77,7 @@ Your job:
   },
 ];
 
-exports.processPrompt = async (req, res) => {
+const processPrompt = async (req, res) => {
   let { input, history = [], file } = req.body;
 
   if (typeof input === 'string') {
@@ -193,3 +193,5 @@ exports.processPrompt = async (req, res) => {
     res.end();
   }
 };
+
+module.exports = { processPrompt };
