@@ -28,8 +28,29 @@ app.set('trust proxy', 1);
 // --- SECURITY MIDDLEWARES ---
 app.use(cors(corsOptions));
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" },
-  contentSecurityPolicy: false, // Disabled if serving API only
+  crossOriginResourcePolicy: { policy: "cross-origin" }, // Required for CORS
+  strictTransportSecurity: {
+    maxAge: 63072000, // 2 years
+    includeSubDomains: true,
+    preload: true,
+  },
+  // Locked-down CSP suited to a JSON API
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+      baseUri: ["'none'"],
+    },
+  },
+  // helmet defaults kept: X-Content-Type-Options nosniff, X-Frame-Options DENY
+  referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+  permissionsPolicy: {
+    features: {
+      camera: [],
+      microphone: [],
+      geolocation: [],
+    },
+  },
 }));
 app.use(apiLimiter);
 app.use(express.json({ limit: '5mb' }));
