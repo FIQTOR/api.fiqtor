@@ -4,7 +4,7 @@ const { getGithubContributions } = require('../controllers/github.controller');
 const { getWakatimeStats } = require('../controllers/wakatime.controller');
 const { getCryptoPrices } = require('../services/crypto.service');
 const { getSocialStats } = require('../services/social.service');
-const { apiLimiter } = require('../middleware/rate-limiter');
+const { apiLimiter, statsLimiter } = require('../middleware/rate-limiter');
 
 /**
  * Stats routes — mounted at /api/v1. Aggregates the read-only endpoints that
@@ -12,10 +12,10 @@ const { apiLimiter } = require('../middleware/rate-limiter');
  */
 
 // GitHub contributions (external API — wrapped so upstream errors return JSON)
-router.get('/github/contributions', apiLimiter, getGithubContributions);
+router.get('/github/contributions', statsLimiter, getGithubContributions);
 
 // WakaTime all-time coding stats (external API — wrapped for graceful errors)
-router.get('/wakatime', apiLimiter, getWakatimeStats);
+router.get('/wakatime', statsLimiter, getWakatimeStats);
 
 // Static cryptocurrency prices (no third-party API — data lives in code)
 router.get('/crypto', apiLimiter, getCryptoPrices);

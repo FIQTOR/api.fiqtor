@@ -3,11 +3,38 @@
  * Handles navigation filtering and intelligent responses with security guardrails.
  */
 const { GoogleGenAI } = require("@google/genai");
-const natural = require("natural");
 const identity = require("../config/identity");
-const tokenizer = new natural.WordTokenizer();
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+let aiClient = null;
+
+/**
+ * Lazily create (or return) the Gemini client. Created on first use so the
+ * module can be imported in tests/environments without an API key present.
+ * @returns {import('@google/genai').GoogleGenAI}
+ */
+function getAiClient() {
+  if (!aiClient) {
+    aiClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  }
+  return aiClient;
+}
+
+/**
+ * Override the Gemini client (test seam) — pass `null` to reset.
+ * @param {object|null} client
+ */
+function setAiClient(client) {
+  aiClient = client;
+}
+
+/**
+ * Tokenize a string into lowercase word tokens for keyword matching.
+ * A lightweight regex split (equivalent to `natural.WordTokenizer`) so we avoid
+ * pulling in the ~14MB `natural` dependency just for this.
+ * @param {string} text
+ * @returns {string[]}
+ */
+const tokenize = (text) => text.toLowerCase().match(/[a-z0-9]+/g) || [];
 
 const REDIRECT_MAP = {
   "/": ["home", "beranda", "landing"],
@@ -99,7 +126,7 @@ const processPrompt = async (req, res) => {
   res.setHeader("X-Accel-Buffering", "no");
 
   try {
-    const tokens = input ? tokenizer.tokenize(input.toLowerCase()) : [];
+    const tokens = input ? tokenize(input) : [];
 
     // Redirect internal page
     if (input) {
@@ -147,7 +174,7 @@ const processPrompt = async (req, res) => {
 
     let stream;
     try {
-      const chat = ai.chats.create({
+      const chat = getAiClient().chats.create({
         model: "gemini-3.1-flash-lite-preview",
         history: [...SYSTEM_HISTORY, ...trimmedHistory],
       });
@@ -161,7 +188,7 @@ const processPrompt = async (req, res) => {
         error.message,
       );
 
-      const fallbackChat = ai.chats.create({
+      const fallbackChat = getAiClient().chats.create({
         model: "gemini-3-flash-preview",
         history: [...SYSTEM_HISTORY, ...trimmedHistory],
       });
@@ -194,4 +221,4 @@ const processPrompt = async (req, res) => {
   }
 };
 
-module.exports = { processPrompt };
+module.exports = { processPrompt, setAiClient };

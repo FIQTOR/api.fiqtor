@@ -1,91 +1,108 @@
-const axios = require("axios");
+const defaultAxios = require("axios");
 const nodemailer = require("nodemailer");
 
 /**
- * Service untuk menangani pengiriman pesan dengan UI yang lebih memuaskan
+ * Build the messaging service with injectable dependencies.
+ *
+ * The WhatsApp (axios) and Email (nodemailer) transports are passed in so tests
+ * can supply fakes without patching Node's module cache (which Vitest cannot
+ * intercept for CommonJS `require`). Production callers use the default export.
+ *
+ * @param {object} [deps]
+ * @param {(config: object) => Promise<{ data: unknown }>} [deps.httpClient] - HTTP client (axios-like)
+ * @param {() => { sendMail: (options: object) => Promise<unknown> }} [deps.createTransport] - Transport factory
+ * @returns {{ messagingService: (data: object) => Promise<object> }}
  */
-async function messagingService(data) {
-    try {
-        console.log("🚀 Initiating high-speed delivery via WhatsApp...");
-        const waResponse = await sendWhatsApp(data);
+function createMessagingService(deps = {}) {
+    const httpClient = deps.httpClient || defaultAxios;
+    const createTransport = deps.createTransport || ((options) => nodemailer.createTransport(options));
 
-        return {
-            success: true,
-            provider: "whatsapp",
-            info: waResponse.data
-        };
-
-    } catch (waError) {
-        console.error("⚠️ WhatsApp failed. Triggering professional Email fallback...");
-
+    /**
+     * Deliver a contact message: try WhatsApp first, fall back to Email.
+     * @param {{ name: string, email: string, type: string, message: string }} data
+     * @returns {Promise<{ success: boolean, provider: string, info: unknown }>}
+     */
+    async function messagingService(data) {
         try {
-            const emailInfo = await sendEmail(data);
+            console.log("🚀 Initiating high-speed delivery via WhatsApp...");
+            const waResponse = await sendWhatsApp(data);
+
             return {
                 success: true,
-                provider: "email",
-                info: emailInfo
+                provider: "whatsapp",
+                info: waResponse.data
             };
-        } catch (emailError) {
-            console.error("❌ Critical: All messaging channels are exhausted.");
-            throw new Error("Failed to deliver message through all available channels.");
+        } catch {
+            console.error("⚠️ WhatsApp failed. Triggering professional Email fallback...");
+
+            try {
+                const emailInfo = await sendEmail(data);
+                return {
+                    success: true,
+                    provider: "email",
+                    info: emailInfo
+                };
+            } catch {
+                console.error("❌ Critical: All messaging channels are exhausted.");
+                throw new Error("Failed to deliver message through all available channels.");
+            }
         }
     }
-}
 
-// Helper: WhatsApp API (Clean & Structured)
-async function sendWhatsApp(data) {
-    // Membersihkan input agar tidak ada karakter aneh yang merusak template
-    const cleanName = data.name.trim();
-    const cleanEmail = data.email.toLowerCase().trim();
-    const cleanType = data.type.toUpperCase();
+    // Helper: WhatsApp API (Clean & Structured)
+    async function sendWhatsApp(data) {
+        // Membersihkan input agar tidak ada karakter aneh yang merusak template
+        const cleanName = data.name.trim();
+        const cleanEmail = data.email.toLowerCase().trim();
+        const cleanType = data.type.toUpperCase();
 
-    const payload = {
-        messaging_product: "whatsapp",
-        recipient_type: "individual",
-        to: process.env.RECIPIENT_WAID,
-        type: "template",
-        template: {
-            name: "talk",
-            language: { code: "en" },
-            components: [
-                {
-                    type: "body",
-                    parameters: [
-                        { type: "text", text: `${cleanName}` }, // Bold name
-                        { type: "text", text: cleanEmail },
-                        { type: "text", text: `${cleanType}` }, // Add icon for context
-                        { type: "text", text: data.message },
-                    ],
-                },
-            ],
-        },
-    };
+        const payload = {
+            messaging_product: "whatsapp",
+            recipient_type: "individual",
+            to: process.env.RECIPIENT_WAID,
+            type: "template",
+            template: {
+                name: "talk",
+                language: { code: "en" },
+                components: [
+                    {
+                        type: "body",
+                        parameters: [
+                            { type: "text", text: `${cleanName}` }, // Bold name
+                            { type: "text", text: cleanEmail },
+                            { type: "text", text: `${cleanType}` }, // Add icon for context
+                            { type: "text", text: data.message },
+                        ],
+                    },
+                ],
+            },
+        };
 
-    return axios({
-        method: "post",
-        url: `https://graph.facebook.com/${process.env.VERSION}/${process.env.PHONE_NUMBER_ID}/messages`,
-        headers: {
-            Authorization: `Bearer ${process.env.ACCESS_TOKEN}`,
-            "Content-Type": "application/json",
-        },
-        data: payload,
-    });
-}
+        return httpClient({
+            method: "post",
+            url: `https://graph.facebook.com/${process.env.VERSION}/${process.env.PHONE_NUMBER_ID}/messages`,
+            headers: {
+                Authorization: `Bearer ${process.env.ACCESS_TOKEN}`,
+                "Content-Type": "application/json",
+            },
+            data: payload,
+        });
+    }
 
-// Helper: Nodemailer (Premium Modern HTML Template)
-async function sendEmail(data) {
-    const transporter = nodemailer.createTransport({
-        host: process.env.EMAIL_HOST,
-        port: parseInt(process.env.EMAIL_PORT),
-        secure: true,
-        auth: {
-            user: process.env.EMAIL_USERNAME,
-            pass: process.env.EMAIL_PASSWORD,
-        },
-    });
+    // Helper: Nodemailer (Premium Modern HTML Template)
+    async function sendEmail(data) {
+        const transporter = createTransport({
+            host: process.env.EMAIL_HOST,
+            port: parseInt(process.env.EMAIL_PORT),
+            secure: true,
+            auth: {
+                user: process.env.EMAIL_USERNAME,
+                pass: process.env.EMAIL_PASSWORD,
+            },
+        });
 
-    // Template HTML yang lebih 'Tech' dan Clean
-    const htmlContent = `
+        // Template HTML yang lebih 'Tech' dan Clean
+        const htmlContent = `
     <!DOCTYPE html>
     <html>
     <head>
@@ -129,15 +146,21 @@ async function sendEmail(data) {
     </html>
     `;
 
-    const mailOptions = {
-        from: `"Fiqtor Notifier" <${process.env.EMAIL_USERNAME}>`,
-        to: process.env.EMAIL_RECIPIENT || process.env.EMAIL_USERNAME,
-        subject: `🚀 [${data.type}] Message from ${data.name}`,
-        text: `New message from ${data.name} (${data.email}): ${data.message}`, // Fallback plain text
-        html: htmlContent,
-    };
+        const mailOptions = {
+            from: `"Fiqtor Notifier" <${process.env.EMAIL_USERNAME}>`,
+            to: process.env.EMAIL_RECIPIENT || process.env.EMAIL_USERNAME,
+            subject: `🚀 [${data.type}] Message from ${data.name}`,
+            text: `New message from ${data.name} (${data.email}): ${data.message}`, // Fallback plain text
+            html: htmlContent,
+        };
 
-    return transporter.sendMail(mailOptions);
+        return transporter.sendMail(mailOptions);
+    }
+
+    return { messagingService };
 }
 
-module.exports = { messagingService };
+// Default instance bound to the real transports.
+const { messagingService } = createMessagingService();
+
+module.exports = { messagingService, createMessagingService };

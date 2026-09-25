@@ -1,71 +1,20 @@
 /**
  * @file index.js
- * @description Main entry point for the Fiqtor API server with security hardening.
+ * @description Main entry point for the Fiqtor API server.
+ * The Express app itself is built in `src/app.js` (so it can be imported in
+ * tests); this file only wires up the environment and starts listening.
  */
 
 require('dotenv').config();
 
-const cors = require('cors');
-const helmet = require('helmet');
-const hpp = require('hpp');
-const corsOptions = require('./src/config/cors');
-const { apiLimiter } = require('./src/middleware/rate-limiter');
-const logger = require('./src/middleware/logger');
-const errorHandler = require('./src/middleware/error-handler');
-const cookieParser = require('cookie-parser');
-const express = require('express');
-const { configureRoutes } = require('./src/routes');
+const { createApp } = require('./src/app');
 
 const PORT = process.env.APP_PORT || 4000;
 const ENV = process.env.NODE_ENV || 'development';
 const IS_PROD = ENV === 'production';
 
-const app = express();
+const app = createApp();
 
-// Trust first proxy (required for Vercel / Nginx reverse proxy IP rate limiting)
-app.set('trust proxy', 1);
-
-// --- SECURITY MIDDLEWARES ---
-app.use(cors(corsOptions));
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }, // Required for CORS
-  strictTransportSecurity: {
-    maxAge: 63072000, // 2 years
-    includeSubDomains: true,
-    preload: true,
-  },
-  // Locked-down CSP suited to a JSON API
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'none'"],
-      frameAncestors: ["'none'"],
-      baseUri: ["'none'"],
-    },
-  },
-  // helmet defaults kept: X-Content-Type-Options nosniff, X-Frame-Options DENY
-  referrerPolicy: { policy: "strict-origin-when-cross-origin" },
-  permissionsPolicy: {
-    features: {
-      camera: [],
-      microphone: [],
-      geolocation: [],
-    },
-  },
-}));
-app.use(apiLimiter);
-app.use(express.json({ limit: '5mb' }));
-app.use(express.urlencoded({ limit: '5mb', extended: true }));
-app.use(hpp());
-app.use(cookieParser());
-app.use(logger);
-
-// --- Route Configuration ---
-configureRoutes(app);
-
-// --- GLOBAL ERROR HANDLER ---
-app.use(errorHandler);
-
-// --- Server Startup ---
 app.listen(PORT, (err) => {
   if (err) {
     console.error('Failed to start server:', err);
