@@ -51,7 +51,7 @@ function createMessagingService(deps = {}) {
 
     // Helper: WhatsApp API (Clean & Structured)
     async function sendWhatsApp(data) {
-        // Membersihkan input agar tidak ada karakter aneh yang merusak template
+        // Sanitize input so no stray characters break the template.
         const cleanName = data.name.trim();
         const cleanEmail = data.email.toLowerCase().trim();
         const cleanType = data.type.toUpperCase();
@@ -101,7 +101,7 @@ function createMessagingService(deps = {}) {
             },
         });
 
-        // Template HTML yang lebih 'Tech' dan Clean
+        // Clean, modern HTML email template.
         const htmlContent = `
     <!DOCTYPE html>
     <html>
