@@ -20,7 +20,8 @@ router.get('/wakatime', statsLimiter, getWakatimeStats);
 // Static cryptocurrency prices (no third-party API — data lives in code)
 router.get('/crypto', apiLimiter, getCryptoPrices);
 
-// Static social stats (no scraping / third-party API)
-router.get('/social/stats', apiLimiter, getSocialStats);
+// Social stats (realtime public-profile scrape, cached; falls back to static
+// data). Hits an external site, so it shares the lighter stats limiter.
+router.get('/social/stats', statsLimiter, getSocialStats);
 
 module.exports = router;
