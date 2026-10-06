@@ -1,5 +1,6 @@
 const defaultAxios = require("axios");
 const nodemailer = require("nodemailer");
+const logger = require("../config/logger");
 
 /**
  * Build the messaging service with injectable dependencies.
@@ -24,7 +25,7 @@ function createMessagingService(deps = {}) {
      */
     async function messagingService(data) {
         try {
-            console.log("🚀 Initiating high-speed delivery via WhatsApp...");
+            logger.info("initiating delivery via WhatsApp");
             const waResponse = await sendWhatsApp(data);
 
             return {
@@ -33,7 +34,7 @@ function createMessagingService(deps = {}) {
                 info: waResponse.data
             };
         } catch {
-            console.error("⚠️ WhatsApp failed. Triggering professional Email fallback...");
+            logger.warn("WhatsApp failed, falling back to email");
 
             try {
                 const emailInfo = await sendEmail(data);
@@ -43,7 +44,7 @@ function createMessagingService(deps = {}) {
                     info: emailInfo
                 };
             } catch {
-                console.error("❌ Critical: All messaging channels are exhausted.");
+                logger.error("all messaging channels exhausted");
                 throw new Error("Failed to deliver message through all available channels.");
             }
         }

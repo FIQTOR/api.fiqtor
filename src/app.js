@@ -11,6 +11,7 @@ const hpp = require('hpp');
 const cookieParser = require('cookie-parser');
 const express = require('express');
 const corsOptions = require('./config/cors');
+const { Sentry, enabled: sentryEnabled } = require('./config/sentry');
 const { apiLimiter } = require('./middleware/rate-limiter');
 const logger = require('./middleware/logger');
 const errorHandler = require('./middleware/error-handler');
@@ -62,6 +63,12 @@ function createApp() {
 
   // --- Route Configuration ---
   configureRoutes(app);
+
+  // Sentry's request-scoped handler must run AFTER routes but BEFORE our own
+  // error handler so it can capture the error with request context.
+  if (sentryEnabled) {
+    Sentry.setupExpressErrorHandler(app);
+  }
 
   // --- GLOBAL ERROR HANDLER ---
   app.use(errorHandler);

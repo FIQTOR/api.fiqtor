@@ -11,10 +11,12 @@ Node.js + Express API powering the portfolio frontend. Handles the AI assistant,
 - 📊 **Public Stats** — GitHub contributions + WakaTime coding stats (with caching/retry).
 - 💰 **Static Crypto & Social** — BTC/ETH/SOL prices and TikTok/Instagram follower counts are served from **static, hand-maintained** config files (no third-party API, no key to leak).
 - 🛡️ **Security Hardening** — Helmet, HPP, CORS whitelist, and per-route rate limiting.
+- 🧾 **Structured Logging** — JSON logs via pino (`src/config/logger.js`), HTTP via `pino-http` (CRLF-sanitised, secrets redacted).
+- 🚨 **Error Tracking** — optional Sentry (`SENTRY_DSN`; no-op when unset).
 
 ## 🛠 Tech Stack
 
-- **Runtime:** Node.js **20.x** (see `engines` in `package.json`)
+- **Runtime:** Node.js **24.x** (see `engines` in `package.json`)
 - **Framework:** Express 4 (CommonJS)
 - **AI:** `@google/genai` (Gemini), `groq-sdk` (optional)
 - **Email:** Nodemailer · **HTTP:** Axios
@@ -22,7 +24,7 @@ Node.js + Express API powering the portfolio frontend. Handles the AI assistant,
 
 ## ✅ Prerequisites
 
-- Node.js **20.x+**
+- Node.js **24.x+**
 - npm
 - (Optional) API keys for the integrations you enable — see env below.
 
@@ -63,6 +65,8 @@ All sensitive data is read from `backend/.env` (gitignored). See [`backend/.env.
 | `GITHUB_USERNAME`, `GITHUB_TOKEN` | ⬜ | GitHub contribution stats |
 | `WAKATIME_APP_SECRET` | ⬜ | WakaTime stats |
 | `WAKATIME_TIMEOUT_MS`, `WAKATIME_MAX_RETRIES`, `WAKATIME_CACHE_TTL_MS` | ⬜ | WakaTime tuning (defaults 8000 / 2 / 300000) |
+| `LOG_LEVEL` | ⬜ | pino log level (`debug` dev / `info` prod by default) |
+| `SENTRY_DSN`, `SENTRY_RELEASE`, `SENTRY_TRACES_SAMPLE_RATE` | ⬜ | Sentry error tracking (empty DSN = disabled) |
 
 > 💡 **AI identity & social URLs are code-based.** They live in [`src/config/identity.js`](src/config/identity.js) (brand, owner, company, social links) — edit and restart. They are not secrets, so keeping them out of `.env` avoids drift.
 

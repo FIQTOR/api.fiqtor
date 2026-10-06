@@ -4,6 +4,7 @@
  */
 const { GoogleGenAI } = require("@google/genai");
 const identity = require("../config/identity");
+const logger = require("../config/logger");
 
 let aiClient = null;
 
@@ -183,9 +184,9 @@ const processPrompt = async (req, res) => {
         message: messagePayload,
       });
     } catch (error) {
-      console.warn(
-        "Model gemini-3.1-flash-lite-preview error, falling back to gemini-3-flash-preview:",
-        error.message,
+      logger.warn(
+        { err: error.message },
+        "primary model failed, falling back to gemini-3-flash-preview",
       );
 
       const fallbackChat = getAiClient().chats.create({
@@ -208,7 +209,7 @@ const processPrompt = async (req, res) => {
     res.write(`data: [DONE]\n\n`);
     res.end();
   } catch (error) {
-    console.error("Stream error:", error);
+    logger.error({ err: error }, "AI stream error");
 
     res.write(
       `data: ${JSON.stringify({

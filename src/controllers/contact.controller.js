@@ -1,4 +1,5 @@
 const { messagingService } = require('../services/contact.service');
+const logger = require('../config/logger');
 
 /**
  * POST /api/v1/contact/send
@@ -22,7 +23,7 @@ async function sendContactMessage(req, res) {
             data: result.info,
         });
     } catch (error) {
-        console.error('Contact Form Error:', error.message);
+        logger.error({ err: error.message }, 'contact form error');
         return res.status(500).json({
             status: 'error',
             message: 'Failed to send message.',

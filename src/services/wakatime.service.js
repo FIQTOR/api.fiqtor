@@ -1,6 +1,7 @@
 const { default: axios } = require("axios");
 const http = require("http");
 const https = require("https");
+const logger = require("../config/logger");
 
 /**
  * WakaTime API service.
@@ -65,9 +66,14 @@ async function fetchWakatimeStats(apiKey) {
       const retryable = isRetryable(error);
       const isLastAttempt = attempt === MAX_RETRIES;
 
-      console.error(
-        `WakaTime request failed (attempt ${attempt + 1}/${MAX_RETRIES + 1}` +
-          `${retryable ? ", retryable" : ", non-retryable"}): ${error.code || error.message}`
+      logger.warn(
+        {
+          attempt: attempt + 1,
+          maxAttempts: MAX_RETRIES + 1,
+          retryable,
+          err: error.code || error.message,
+        },
+        "WakaTime request failed",
       );
 
       if (!retryable || isLastAttempt) break;
@@ -114,7 +120,7 @@ const getWakatime = async (req, res) => {
       data,
     });
   } catch (error) {
-    console.error("WakaTime Service Error:", error.code || error.message);
+    logger.error({ err: error.code || error.message }, "WakaTime service error");
 
     // Graceful degradation: serve stale cache if available.
     if (cache.data) {

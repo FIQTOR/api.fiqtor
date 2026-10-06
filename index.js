@@ -7,7 +7,12 @@
 
 require('dotenv').config();
 
+// Initialize Sentry as early as possible (no-op without SENTRY_DSN) so it can
+// instrument the app before any other module is loaded.
+require('./src/config/sentry');
+
 const { createApp } = require('./src/app');
+const logger = require('./src/config/logger');
 
 const PORT = process.env.APP_PORT || 4000;
 const ENV = process.env.NODE_ENV || 'development';
@@ -17,24 +22,12 @@ const app = createApp();
 
 app.listen(PORT, (err) => {
   if (err) {
-    console.error('Failed to start server:', err);
+    logger.fatal({ err }, 'failed to start server');
     throw err;
   }
 
-  const colors = {
-    reset: "\x1b[0m",
-    blue: "\x1b[34m",
-    green: "\x1b[32m",
-    yellow: "\x1b[33m",
-  };
-
-  const listeningUrl = IS_PROD ? `Port ${PORT}` : `http://localhost:${PORT}`;
-  const envString = `${colors.yellow}${ENV.padEnd(15)}${colors.reset}`;
-  const urlString = `${colors.blue}${listeningUrl.padEnd(23)}${colors.reset}`;
-
-  console.log("\n" + "┌──────────────────────────────────────────┐" + colors.reset);
-  console.log(`│ 🚀 ${colors.green}Server is running!${colors.reset}                    │`);
-  console.log(`│ 🌐 Environment : ${envString}         │`);
-  console.log(`│ 📡 Listening on: ${urlString}   │`);
-  console.log("└──────────────────────────────────────────┘" + colors.reset + "\n");
+  logger.info(
+    { env: ENV, port: PORT, url: IS_PROD ? undefined : `http://localhost:${PORT}` },
+    `server is running (${ENV})`,
+  );
 });

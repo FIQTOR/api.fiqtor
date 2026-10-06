@@ -1,3 +1,5 @@
+const logger = require("../config/logger");
+
 const fetchGithubContributions = async (req, res) => {
     try {
         const username = process.env.GITHUB_USERNAME;
@@ -34,7 +36,7 @@ const fetchGithubContributions = async (req, res) => {
         
         return res.status(200).json(result.data);
     } catch (err) {
-        console.error("Github Service Error:", err);
+        logger.error({ err }, "GitHub service error");
         return res.status(500).json({ status: "error", message: err.message });
     }
 };

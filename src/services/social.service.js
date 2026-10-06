@@ -18,6 +18,7 @@
 const axios = require("axios");
 const http = require("http");
 const https = require("https");
+const logger = require("../config/logger");
 
 const socialConfig = require("../config/social");
 
@@ -132,13 +133,13 @@ const buildSocialStats = async () => {
   ]);
 
   if (tiktokResult.status === "fulfilled") tiktok = tiktokResult.value;
-  else console.warn("TikTok realtime fetch failed:", tiktokResult.reason?.message);
+  else logger.warn({ err: tiktokResult.reason?.message }, "TikTok realtime fetch failed");
 
   if (instagramResult.status === "fulfilled") instagram = instagramResult.value;
   else
-    console.warn(
-      "Instagram realtime fetch failed:",
-      instagramResult.reason?.message
+    logger.warn(
+      { err: instagramResult.reason?.message },
+      "Instagram realtime fetch failed"
     );
 
   const liveTiktok = withFallback(tiktok, tiktokDefault);
