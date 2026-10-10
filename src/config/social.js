@@ -21,8 +21,8 @@ const socialConfig = {
     instagram: "fiqtorr",
   },
   /** Fallback numbers (shown when the realtime fetch fails). */
-  tiktok: { followers: 2006, following: 49 },
-  instagram: { followers: 671, following: 572 },
+  tiktok: { followers: 130000, following: 1955 },
+  instagram: { followers: 696, following: 579 },
 };
 
 module.exports = socialConfig;
