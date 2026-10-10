@@ -97,13 +97,16 @@ const fetchTiktok = async (username) => {
   });
 
   // TikTok embeds a JSON blob; follower counts appear as followerCount /
-  // followingCount. Fall back to the SIGI_STATE / universal data if present.
+  // followingCount and total likes as heartCount. Fall back to the SIGI_STATE /
+  // universal data if present.
   const followers = data.match(/"followerCount":(\d+)/);
   const following = data.match(/"followingCount":(\d+)/);
+  const likes = data.match(/"heartCount":(\d+)/);
   if (followers && following) {
     return {
       followers: Number(followers[1]),
       following: Number(following[1]),
+      likes: likes ? Number(likes[1]) : null,
     };
   }
   return null;
@@ -113,6 +116,11 @@ const fetchTiktok = async (username) => {
 const withFallback = (fetched, fallback) => ({
   followers: fetched?.followers ?? fallback.followers,
   following: fetched?.following ?? fallback.following,
+  // Only carry `likes` through when the platform (or its default) defines it,
+  // so Instagram payloads don't gain a spurious `null` likes field.
+  ...(fetched?.likes != null || fallback.likes != null
+    ? { likes: fetched?.likes ?? fallback.likes }
+    : {}),
 });
 
 /**

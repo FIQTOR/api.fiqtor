@@ -78,4 +78,16 @@ describe('withFallback', () => {
       following: 49,
     });
   });
+
+  it('carries likes through when the default defines it', () => {
+    expect(
+      withFallback({ followers: 10, following: 5 }, { followers: 1, following: 2, likes: 130000 })
+    ).toEqual({ followers: 10, following: 5, likes: 130000 });
+  });
+
+  it('does not add a likes key when neither side defines it', () => {
+    expect(withFallback({ followers: 10, following: 5 }, fallback)).not.toHaveProperty(
+      'likes'
+    );
+  });
 });
