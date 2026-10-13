@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   backend:
-    name: Test
+    name: Lint · Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,6 +27,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Lint
+        run: npm run lint
 
       - name: Test
         run: npm test

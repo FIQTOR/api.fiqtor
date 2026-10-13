@@ -63,7 +63,6 @@ const MAX_INPUT_LENGTH = 1200; // Limit prompt length to prevent token abuse
 // Identity used to build the assistant system prompt (from config, not env).
 const AI_BRAND = identity.brandName;
 const AI_OWNER = identity.owner.name;
-const AI_ALIAS = identity.owner.alias || AI_BRAND;
 const AI_ROLE = identity.owner.role;
 const AI_COMPANY = identity.company.name;
 const AI_COMPANY_URL = identity.company.url;

@@ -41,6 +41,8 @@ cp .env.example .env    # then edit .env with your values
 ```bash
 npm run dev     # nodemon, auto-reload
 npm start       # production
+npm run lint    # eslint
+npm test        # vitest (single run)
 ```
 
 Server listens on `APP_PORT` (default **4000**).
@@ -55,13 +57,11 @@ All sensitive data is read from `backend/.env` (gitignored). See [`backend/.env.
 | `APP_PORT` | ✅ | Server port (default `4000`) |
 | `FRONTEND_HOST` | ✅ | Allowed CORS origin(s) |
 | `GEMINI_API_KEY` | ✅ | Google Gemini key |
-| `GROQ_API_KEY` | ⬜ | Optional Groq key |
 | `AI_BRAND_NAME`, `AI_OWNER_NAME`, `AI_OWNER_ALIAS`, `AI_OWNER_ROLE`, `AI_OWNER_BIO`, `AI_COMPANY_NAME`, `AI_COMPANY_URL` | — | **Moved to code** → `src/config/identity.js` |
 | `SOCIAL_TIKTOK`, `SOCIAL_INSTAGRAM`, `SOCIAL_YOUTUBE`, `SOCIAL_LINKEDIN`, `SOCIAL_GITHUB` | — | **Moved to code** → `src/config/identity.js` |
 | `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USERNAME`, `EMAIL_PASSWORD` | ✅ | SMTP (Gmail App Password recommended) |
 | `EMAIL_RECIPIENT` | ✅ | Receives contact-form notifications |
-| `EMAIL_BUSINESS` | ⬜ | Optional public business email |
-| `APP_ID`, `APP_SECRET`, `RECIPIENT_WAID`, `VERSION`, `PHONE_NUMBER_ID`, `ACCESS_TOKEN` | ⬜ | WhatsApp / Meta Cloud API |
+| `RECIPIENT_WAID`, `VERSION`, `PHONE_NUMBER_ID`, `ACCESS_TOKEN` | ⬜ | WhatsApp / Meta Cloud API (outbound only) |
 | `GITHUB_USERNAME`, `GITHUB_TOKEN` | ⬜ | GitHub contribution stats |
 | `WAKATIME_APP_SECRET` | ⬜ | WakaTime stats |
 | `WAKATIME_TIMEOUT_MS`, `WAKATIME_MAX_RETRIES`, `WAKATIME_CACHE_TTL_MS` | ⬜ | WakaTime tuning (defaults 8000 / 2 / 300000) |
