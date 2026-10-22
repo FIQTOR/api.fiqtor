@@ -1,14 +1,13 @@
 /**
- * Static cryptocurrency market data.
+ * LAST-RESORT fallback cryptocurrency data (not the primary source).
  *
- * ⚠️ SECURITY / PRIVACY FIRST
- *   This project intentionally does NOT call any third-party crypto API.
- *   Instead of shipping a public API key to the browser (which anyone could
- *   steal), the values below are plain, hand-maintained, static data.
+ * Prices are normally fetched LIVE from CoinGecko inside
+ * `src/services/crypto.service.js`; this file is only served when upstream has
+ * never answered successfully (cold start + outage). Nothing here is secret —
+ * the API call happens server-side, so no key ever reaches the browser.
  *
- *   ➜ To update prices, edit the numbers here and restart the server.
- *   The shape below is what the frontend expects:
- *     { btc, eth, sol } where each coin has { rate, delta: { month } }
+ * The shape below is what the frontend expects:
+ *   { btc, eth, sol } where each coin has { rate, delta: { month, day } }
  *
  *   `delta.month` is a RATIO relative to 30 days ago (1 = unchanged):
  *     - 1.05  → +5%  (green, up)
