@@ -37,28 +37,87 @@ function setAiClient(client) {
  */
 const tokenize = (text) => text.toLowerCase().match(/[a-z0-9]+/g) || [];
 
+/**
+ * Navigation intents.
+ *
+ * A redirect is a *navigation*, so it may only fire when the visitor is
+ * actually asking to be taken somewhere. Matching any single keyword used to
+ * hijack real questions: `/talk` contains "contact", so "how do I contact
+ * you?" never reached the model, and `SOCIAL_MAP` contained the token "in"
+ * (LinkedIn) plus "ig"/"tt" — any sentence with the word "in" opened LinkedIn.
+ *
+ * Each intent therefore needs:
+ *   - a VERB that asks for navigation ("show", "open", "go to", "buka"), AND
+ *   - a NOUN naming the destination.
+ * A bare noun is not enough; it is far more likely to be part of a question
+ * ("tell me about your projects", "what does your stack look like?") which the
+ * model should answer in prose instead of jumping the visitor to another page.
+ */
+const NAV_VERBS = new Set([
+  "show", "see", "view", "open", "go", "goto", "visit", "browse", "take",
+  "navigate", "jump", "bring", "redirect",
+  "lihat", "tampilkan", "buka", "pergi", "kunjungi", "arahkan", "tuju",
+]);
+
+const NAV_PHRASES = [
+  /\b(?:go|take me|bring me|jump|navigate)\s+to\b/,
+  /\b(?:show|take|bring)\s+me\b/,
+  /\b(?:bawa|antar)\s+saya\s+ke\b/,
+  /\bpergi\s+ke\b/,
+  /\bke\s+halaman\b/,
+  /\bliat(?:h)?\s+(?:halaman|proyek|projek)\b/,
+];
+
 const REDIRECT_MAP = {
-  "/": ["home", "beranda", "landing"],
-  "/talk": ["contact", "kontak", "business", "bicara"],
-  "/#about": ["about", "tentang", "profil", "siapa"],
-  "/#skills": ["skill", "kemampuan", "stack", "keahlian"],
-  "/linktree": ["linktree", "links", "sosmed", "social"],
-  "/career": ["career", "karir", "pengalaman", "kerja"],
+  "/": ["home", "homepage", "beranda", "landing"],
+  "/talk": ["contact", "kontak", "hubungi", "talk"],
+  "/#about": ["about", "tentang", "profil"],
+  "/#skills": ["skill", "skills", "kemampuan", "keahlian"],
+  "/linktree": ["linktree", "links", "tautan"],
+  "/career": ["career", "karir", "pengalaman", "experience"],
   "/roadmap": ["roadmap", "belajar", "learn"],
-  "/projects": ["project", "projek", "portfolio"],
-  "/certification": ["sertifikat", "certificate", "award"],
+  "/projects": ["project", "projects", "projek", "portfolio", "portofolio", "proyek"],
+  "/certification": ["certificates", "certificate", "certifications", "sertifikat", "certification"],
 };
 
+/**
+ * Social destinations. Kept to unambiguous names: `"in"`, `"ig"` and `"tt"`
+ * were removed because they are ordinary words/abbreviations that appear in
+ * unrelated sentences and caused phantom redirects.
+ */
 const SOCIAL_MAP = {
-  [identity.social.tiktok]: ["tiktok", "tt"],
-  [identity.social.instagram]: ["instagram", "ig", "insta"],
-  [identity.social.youtube]: ["youtube", "yt"],
-  [identity.social.linkedin]: ["linkedin", "in"],
-  [identity.social.github]: ["github", "gh"],
+  [identity.social.tiktok]: ["tiktok"],
+  [identity.social.instagram]: ["instagram", "insta"],
+  [identity.social.youtube]: ["youtube"],
+  [identity.social.linkedin]: ["linkedin"],
+  [identity.social.github]: ["github"],
+};
+
+/**
+ * True when the prompt reads as a navigation request ("show me projects")
+ * rather than a question ("what have you built?").
+ * @param {string} text
+ * @param {string[]} tokens
+ * @returns {boolean}
+ */
+const isNavigationIntent = (text, tokens) => {
+  if (tokens.some((t) => NAV_VERBS.has(t))) return true;
+  return NAV_PHRASES.some((re) => re.test(text));
 };
 
 const MAX_HISTORY = 10;
 const MAX_INPUT_LENGTH = 1200; // Limit prompt length to prevent token abuse
+
+/**
+ * Gemini model ids, overridable per environment.
+ *
+ * These used to be hardcoded, which meant a retired/preview id could only be
+ * fixed by redeploying. Reading them from env lets an operator switch models
+ * (e.g. when a preview id is taken down) without a code change.
+ * `PRIMARY` must be a *published* id — an invalid one fails on every request.
+ */
+const AI_MODEL_PRIMARY = process.env.AI_MODEL_PRIMARY || "gemini-2.5-flash-lite";
+const AI_MODEL_FALLBACK = process.env.AI_MODEL_FALLBACK || "gemini-3-flash-preview";
 
 // Identity used to build the assistant system prompt (from config, not env).
 const AI_BRAND = identity.brandName;
@@ -128,31 +187,36 @@ const processPrompt = async (req, res) => {
   try {
     const tokens = input ? tokenize(input) : [];
 
-    // Redirect internal page
+    // Navigation shortcuts. Only taken when the prompt actually asks to go
+    // somewhere — see `isNavigationIntent`. Anything else falls through to the
+    // model, which answers questions about the same pages in prose.
     if (input) {
-      for (const [path, keywords] of Object.entries(REDIRECT_MAP)) {
-        if (tokens.some((t) => keywords.includes(t))) {
-          res.write(
-            `data: ${JSON.stringify({
-              type: "redirectLocal",
-              url: path,
-            })}\n\n`,
-          );
-          return res.end();
-        }
-      }
+      const nav = isNavigationIntent(input.toLowerCase(), tokens);
 
-      // Redirect social media
-      for (const [url, keywords] of Object.entries(SOCIAL_MAP)) {
-        if (tokens.some((t) => keywords.includes(t))) {
-          res.write(
-            `data: ${JSON.stringify({
-              type: "redirect",
-              platform: url,
-              text: `Opening ${url}...`,
-            })}\n\n`,
-          );
-          return res.end();
+      if (nav) {
+        for (const [path, keywords] of Object.entries(REDIRECT_MAP)) {
+          if (tokens.some((t) => keywords.includes(t))) {
+            res.write(
+              `data: ${JSON.stringify({
+                type: "redirectLocal",
+                url: path,
+              })}\n\n`,
+            );
+            return res.end();
+          }
+        }
+
+        for (const [url, keywords] of Object.entries(SOCIAL_MAP)) {
+          if (tokens.some((t) => keywords.includes(t))) {
+            res.write(
+              `data: ${JSON.stringify({
+                type: "redirect",
+                platform: url,
+                text: `Opening ${url}...`,
+              })}\n\n`,
+            );
+            return res.end();
+          }
         }
       }
     }
@@ -175,7 +239,11 @@ const processPrompt = async (req, res) => {
     let stream;
     try {
       const chat = getAiClient().chats.create({
-        model: "gemini-3.1-flash-lite-preview",
+        // "gemini-3.1-flash-lite-preview" is NOT a published model id: every
+        // request used to fail here and silently retry on the fallback, which
+        // doubled latency and billed a wasted call. The fast/lite tier is
+        // `gemini-2.5-flash-lite`; the heavier one stays as the fallback.
+        model: AI_MODEL_PRIMARY,
         history: [...SYSTEM_HISTORY, ...trimmedHistory],
       });
 
@@ -184,12 +252,12 @@ const processPrompt = async (req, res) => {
       });
     } catch (error) {
       logger.warn(
-        { err: error.message },
-        "primary model failed, falling back to gemini-3-flash-preview",
+        { err: error.message, model: AI_MODEL_PRIMARY },
+        `primary model failed, falling back to ${AI_MODEL_FALLBACK}`,
       );
 
       const fallbackChat = getAiClient().chats.create({
-        model: "gemini-3-flash-preview",
+        model: AI_MODEL_FALLBACK,
         history: [...SYSTEM_HISTORY, ...trimmedHistory],
       });
 
