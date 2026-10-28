@@ -35,7 +35,7 @@ function setAiClient(client) {
  * @param {string} text
  * @returns {string[]}
  */
-const tokenize = (text) => text.toLowerCase().match(/[a-z0-9]+/g) || [];
+const tokenize = (text) => text.toLowerCase().match(/[a-z0-9]+|[\u4e00-\u9fa5]{1,4}/g) || [];
 
 /**
  * Navigation intents.
@@ -57,6 +57,7 @@ const NAV_VERBS = new Set([
   "show", "see", "view", "open", "go", "goto", "visit", "browse", "take",
   "navigate", "jump", "bring", "redirect",
   "lihat", "tampilkan", "buka", "pergi", "kunjungi", "arahkan", "tuju",
+  "打开", "查看", "浏览", "转到", "前往", "跳转", "访问", "显示", "去",
 ]);
 
 const NAV_PHRASES = [
@@ -66,18 +67,19 @@ const NAV_PHRASES = [
   /\bpergi\s+ke\b/,
   /\bke\s+halaman\b/,
   /\bliat(?:h)?\s+(?:halaman|proyek|projek)\b/,
+  /(?:带我去|去|前往|查看|打开|跳转到)(?:页面|项目|证书|关于|主页|联系)/,
 ];
 
 const REDIRECT_MAP = {
-  "/": ["home", "homepage", "beranda", "landing"],
-  "/talk": ["contact", "kontak", "hubungi", "talk"],
-  "/#about": ["about", "tentang", "profil"],
-  "/#skills": ["skill", "skills", "kemampuan", "keahlian"],
-  "/linktree": ["linktree", "links", "tautan"],
-  "/career": ["career", "karir", "pengalaman", "experience"],
-  "/roadmap": ["roadmap", "belajar", "learn"],
-  "/projects": ["project", "projects", "projek", "portfolio", "portofolio", "proyek"],
-  "/certification": ["certificates", "certificate", "certifications", "sertifikat", "certification"],
+  "/": ["home", "homepage", "beranda", "landing", "首页", "主页"],
+  "/talk": ["contact", "kontak", "hubungi", "talk", "联系", "沟通", "合作"],
+  "/#about": ["about", "tentang", "profil", "关于", "个人介绍"],
+  "/#skills": ["skill", "skills", "kemampuan", "keahlian", "技能", "技术栈"],
+  "/linktree": ["linktree", "links", "tautan", "链接树", "外链"],
+  "/career": ["career", "karir", "pengalaman", "experience", "经历", "履历", "职业历程"],
+  "/roadmap": ["roadmap", "belajar", "learn", "路线图"],
+  "/projects": ["project", "projects", "projek", "portfolio", "portofolio", "proyek", "项目", "作品集", "案例"],
+  "/certification": ["certificates", "certificate", "certifications", "sertifikat", "certification", "证书", "资质", "认证"],
 };
 
 /**
@@ -149,6 +151,7 @@ Your job:
 - Answer questions about ${AI_BRAND}'s skills, background, and work.
 - Help visitors understand their technical projects and expertise.
 - Be concise, professional, and tech-savvy.
+- LANGUAGE ADAPTATION: You MUST always detect and respond in the EXACT SAME LANGUAGE as the user's prompt or preferred language (e.g. if the user writes in Chinese / Mandarin, reply in fluent, natural Simplified Chinese; if in Indonesian, reply in Bahasa Indonesia; if in English, reply in English).
 `,
       },
     ],
@@ -164,7 +167,7 @@ Your job:
 ];
 
 const processPrompt = async (req, res) => {
-  let { input, history = [], file } = req.body;
+  let { input, history = [], file, lang } = req.body;
 
   if (typeof input === 'string') {
     input = input.trim().substring(0, MAX_INPUT_LENGTH);
@@ -244,7 +247,11 @@ const processPrompt = async (req, res) => {
         // doubled latency and billed a wasted call. The fast/lite tier is
         // `gemini-2.5-flash-lite`; the heavier one stays as the fallback.
         model: AI_MODEL_PRIMARY,
-        history: [...SYSTEM_HISTORY, ...trimmedHistory],
+        history: [
+          ...SYSTEM_HISTORY,
+          ...(lang ? [{ role: "user", parts: [{ text: `[System note: The visitor's current website language is set to '${lang}'. If the question does not explicitly dictate another language, respond in ${lang === 'zh' ? 'Simplified Chinese (简体中文)' : lang === 'id' ? 'Bahasa Indonesia' : 'English'}.]` }] }, { role: "model", parts: [{ text: "Understood, I will match this language preference." }] }] : []),
+          ...trimmedHistory,
+        ],
       });
 
       stream = await chat.sendMessageStream({
@@ -258,7 +265,11 @@ const processPrompt = async (req, res) => {
 
       const fallbackChat = getAiClient().chats.create({
         model: AI_MODEL_FALLBACK,
-        history: [...SYSTEM_HISTORY, ...trimmedHistory],
+        history: [
+          ...SYSTEM_HISTORY,
+          ...(lang ? [{ role: "user", parts: [{ text: `[System note: The visitor's current website language is set to '${lang}'. If the question does not explicitly dictate another language, respond in ${lang === 'zh' ? 'Simplified Chinese (简体中文)' : lang === 'id' ? 'Bahasa Indonesia' : 'English'}.]` }] }, { role: "model", parts: [{ text: "Understood, I will match this language preference." }] }] : []),
+          ...trimmedHistory,
+        ],
       });
 
       stream = await fallbackChat.sendMessageStream({
