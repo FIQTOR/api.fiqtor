@@ -18,7 +18,7 @@ Node.js + Express API powering the portfolio frontend. Handles the AI assistant,
 
 - **Runtime:** Node.js **24.x** (see `engines` in `package.json`)
 - **Framework:** Express 4 (CommonJS)
-- **AI:** `@google/genai` (Gemini), `groq-sdk` (optional)
+- **AI:** `@google/genai` (Google Gemini SDK v1.46+)
 - **Email:** Nodemailer · **HTTP:** Axios
 - **Security:** Helmet, express-rate-limit, hpp, cors, cookie-parser
 
